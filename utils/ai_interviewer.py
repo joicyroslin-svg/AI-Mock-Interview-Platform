@@ -72,8 +72,11 @@ Candidate Resume:
 
 Rules:
 - Ask only one question
-- If resume is provided, make the question related to resume projects or skills
-- Keep it realistic for internships and fresher interviews
+- If resume is provided, make the question related to resume projects, skills, or experience
+- For Beginner level, ask simple conceptual or HR questions
+- For Intermediate level, ask project-based and practical questions
+- For Advanced level, ask scenario-based, system-design, debugging, optimization, or real-world problem-solving questions
+- Make the question realistic for internships and fresher interviews
 - Do not include the answer
 """
 
@@ -123,21 +126,28 @@ Evaluate the answer in this exact format:
 
 Score: X/10
 
+Answer Quality:
+Explain whether the answer is clear, complete, and relevant.
+
 What Was Good:
 Mention strengths in the answer.
 
 What Can Be Improved:
-Mention mistakes or missing points.
+Mention missing points, weak explanation, or unclear parts.
 
 Better Sample Answer:
-Give a better beginner-friendly answer.
+Give a stronger beginner-friendly answer.
+
+Role-Specific Tip:
+Give one tip based on the selected role.
 
 Confidence Tip:
-Give one practical tip to answer better in interviews.
+Give one practical speaking/interview confidence tip.
 
 Rules:
 - Score must be between 1 and 10
-- Keep feedback simple and useful for a student/fresher
+- Give specific feedback, not generic feedback
+- Keep it useful for a student/fresher
 - Be honest but encouraging
 """
 

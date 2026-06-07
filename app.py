@@ -11,7 +11,6 @@ from utils.ai_interviewer import (
     evaluate_answer,
     transcribe_audio_answer,
     generate_final_interview_summary,
-
 )
 from utils.pdf_reader import extract_text_from_pdf
 
@@ -76,6 +75,7 @@ AI Feedback:
 """
 
     return report
+
 
 def get_readiness_level(average_score):
     if average_score >= 8:
@@ -147,6 +147,26 @@ def create_score_bar_chart(feedback_history):
 
     return fig
 
+
+def split_questions(question_text):
+    lines = question_text.split("\n")
+    questions = []
+
+    for line in lines:
+        clean_line = line.strip()
+
+        if not clean_line:
+            continue
+
+        if re.match(r"^\d+[\).\s-]", clean_line) or clean_line.startswith("-"):
+            questions.append(clean_line)
+
+    if not questions and question_text.strip():
+        questions = [question_text.strip()]
+
+    return questions
+
+
 st.set_page_config(
     page_title="AI Mock Interview Platform",
     page_icon="🎤",
@@ -189,6 +209,37 @@ st.markdown(
         line-height: 1.7;
     }
 
+    .dashboard-panel {
+        background: rgba(255, 255, 255, 0.88);
+        padding: 24px;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 16px 35px rgba(15, 23, 42, 0.08);
+        margin-bottom: 22px;
+    }
+
+    .section-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: #2563eb;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+
+    .section-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 8px;
+    }
+
+    .section-desc {
+        font-size: 15px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
     div[data-testid="stMetric"] {
         background: white;
         border: 1px solid #e2e8f0;
@@ -223,7 +274,7 @@ st.markdown(
         <div class="main-title">AI Mock Interview Platform</div>
         <div class="subtitle">
             Practice interviews with AI-generated questions, resume-based questioning,
-            answer evaluation, performance tracking, and downloadable interview reports.
+            answer evaluation, performance tracking, voice input, and downloadable interview reports.
         </div>
     </div>
     """,
@@ -246,7 +297,13 @@ if "scores" not in st.session_state:
     st.session_state.scores = []
 
 if "transcribed_answer" not in st.session_state:
-    st.session_state.transcribed_answer = ""    
+    st.session_state.transcribed_answer = ""
+
+if "multiple_questions" not in st.session_state:
+    st.session_state.multiple_questions = []
+
+if "multiple_answers" not in st.session_state:
+    st.session_state.multiple_answers = {}
 
 
 st.sidebar.title("Interview Setup")
@@ -265,13 +322,21 @@ role = st.sidebar.selectbox(
     "Choose Role",
     [
         "AI/ML Intern",
-        "Data Analyst",
-        "Python Developer",
         "Generative AI Engineer",
+        "Data Analyst",
+        "Data Scientist",
+        "Python Developer",
+        "Backend Developer",
+        "Full Stack Developer",
         "Computer Vision Intern",
         "NLP Intern",
-        "Backend Developer",
+        "MLOps Engineer",
+        "Prompt Engineer",
+        "AI Product Analyst",
         "Business Analyst",
+        "Product Manager",
+        "Technical Writer",
+        "Software Engineer Intern",
     ],
 )
 
@@ -280,6 +345,7 @@ level = st.sidebar.selectbox(
     [
         "Beginner",
         "Intermediate",
+        "Advanced",
     ],
 )
 
@@ -322,7 +388,20 @@ else:
     average_score = 0
     best_score = 0
 
-st.subheader("Interview Performance Dashboard")
+st.markdown(
+    """
+    <div class="dashboard-panel">
+        <div class="section-label">Interview Analytics</div>
+        <div class="section-title">Performance Dashboard</div>
+        <div class="section-desc">
+            Track your attempts, average score, best score, readiness level,
+            score trend, and overall improvement progress.
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 if st.session_state.scores:
     readiness_level = get_readiness_level(average_score)
 
@@ -397,6 +476,7 @@ if mode == "Single Question":
                 st.session_state.resume_text,
             )
 
+        st.session_state.transcribed_answer = ""
         st.session_state.history.append(st.session_state.question)
 
     if st.session_state.question:
@@ -483,7 +563,7 @@ else:
 
     if st.button("Generate Question Set"):
         with st.spinner("Generating multiple interview questions..."):
-            questions = generate_multiple_questions(
+            questions_text = generate_multiple_questions(
                 role,
                 level,
                 question_type,
@@ -491,11 +571,68 @@ else:
                 question_count,
             )
 
-        st.subheader("Generated Interview Questions")
-        st.markdown(questions)
+        st.session_state.multiple_questions = split_questions(questions_text)
+        st.session_state.multiple_answers = {}
+        st.session_state.history.append(questions_text)
 
-        st.session_state.history.append(questions)
+    if st.session_state.multiple_questions:
+        st.subheader("Answer Multiple Interview Questions")
 
+        for index, question in enumerate(st.session_state.multiple_questions, start=1):
+            st.markdown(f"### Question {index}")
+            st.info(question)
+
+            answer_key = f"multiple_answer_{index}"
+
+            answer = st.text_area(
+                f"Your Answer for Question {index}",
+                height=160,
+                key=answer_key,
+                placeholder="Write your answer here...",
+            )
+
+            st.session_state.multiple_answers[answer_key] = answer
+
+        if st.button("Evaluate All Answers"):
+            answered_any = False
+
+            for index, question in enumerate(st.session_state.multiple_questions, start=1):
+                answer_key = f"multiple_answer_{index}"
+                answer = st.session_state.multiple_answers.get(answer_key, "")
+
+                if not answer.strip():
+                    st.warning(f"Question {index} skipped because answer is empty.")
+                    continue
+
+                answered_any = True
+
+                with st.spinner(f"Evaluating answer {index}..."):
+                    feedback = evaluate_answer(
+                        question,
+                        answer,
+                        role,
+                        st.session_state.resume_text,
+                    )
+
+                score = extract_score(feedback)
+
+                st.session_state.feedback_history.append(
+                    {
+                        "question": question,
+                        "answer": answer,
+                        "feedback": feedback,
+                        "score": score,
+                    }
+                )
+
+                if score > 0:
+                    st.session_state.scores.append(score)
+
+                with st.expander(f"Feedback for Question {index} — Score: {score}/10"):
+                    st.markdown(feedback)
+
+            if not answered_any:
+                st.error("Please answer at least one question before evaluation.")
 
 st.subheader("Question History")
 
@@ -505,7 +642,6 @@ if st.session_state.history:
             st.write(item)
 else:
     st.info("No questions generated yet.")
-
 
 st.subheader("Feedback History")
 
@@ -536,4 +672,4 @@ if st.session_state.feedback_history:
 
         st.markdown(final_summary)
 else:
-    st.info("Complete at least one evaluated answer to generate final summary.")    
+    st.info("Complete at least one evaluated answer to generate final summary.")
