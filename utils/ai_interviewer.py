@@ -3,6 +3,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -71,7 +72,7 @@ Candidate Resume:
 
 Rules:
 - Ask only one question
-- If resume is provided, make question related to resume projects/skills
+- If resume is provided, make the question related to resume projects or skills
 - Keep it realistic for internships and fresher interviews
 - Do not include the answer
 """
@@ -118,24 +119,70 @@ Interview Question:
 Candidate Answer:
 {answer}
 
-Evaluate the answer in this format:
+Evaluate the answer in this exact format:
 
-## Score
-Give score out of 10.
+Score: X/10
 
-## What Was Good
+What Was Good:
 Mention strengths in the answer.
 
-## What Can Be Improved
+What Can Be Improved:
 Mention mistakes or missing points.
 
-## Better Sample Answer
+Better Sample Answer:
 Give a better beginner-friendly answer.
 
-## Confidence Tip
+Confidence Tip:
 Give one practical tip to answer better in interviews.
 
-Keep feedback simple, practical, and useful for a student/fresher.
+Rules:
+- Score must be between 1 and 10
+- Keep feedback simple and useful for a student/fresher
+- Be honest but encouraging
 """
 
     return ask_gemini(prompt)
+
+
+def transcribe_audio_answer(audio_bytes, mime_type="audio/wav"):
+    client = get_client()
+
+    if not client:
+        return "Gemini API key is missing. Please add GEMINI_API_KEY."
+
+    prompt = """
+Transcribe this interview answer audio into clean text.
+
+Rules:
+- Return only the transcript
+- Do not add feedback
+- Do not summarize
+- Keep the candidate's meaning
+"""
+
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-1.5-flash",
+    ]
+
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[
+                    prompt,
+                    types.Part.from_bytes(
+                        data=audio_bytes,
+                        mime_type=mime_type,
+                    ),
+                ],
+            )
+
+            if response and response.text:
+                return response.text
+
+        except Exception:
+            continue
+
+    return "Audio transcription failed. Please type your answer manually."

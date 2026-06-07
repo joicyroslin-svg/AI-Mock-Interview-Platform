@@ -7,6 +7,7 @@ from utils.ai_interviewer import (
     generate_interview_question,
     generate_multiple_questions,
     evaluate_answer,
+    transcribe_audio_answer,
 )
 from utils.pdf_reader import extract_text_from_pdf
 
@@ -171,6 +172,9 @@ if "feedback_history" not in st.session_state:
 if "scores" not in st.session_state:
     st.session_state.scores = []
 
+if "transcribed_answer" not in st.session_state:
+    st.session_state.transcribed_answer = ""    
+
 
 st.sidebar.title("Interview Setup")
 
@@ -300,15 +304,49 @@ if mode == "Single Question":
 
         st.subheader("Your Answer")
 
-        user_answer = st.text_area(
-            "Type your answer here",
-            height=220,
-            placeholder="Write your interview answer here...",
+        answer_mode = st.radio(
+            "Choose Answer Mode",
+            ["Type Answer", "Record Voice Answer"],
+            horizontal=True,
         )
+
+        user_answer = ""
+
+        if answer_mode == "Type Answer":
+            user_answer = st.text_area(
+                "Type your answer here",
+                height=220,
+                placeholder="Write your interview answer here...",
+            )
+
+        else:
+            recorded_audio = st.audio_input(
+                "Record your interview answer",
+                sample_rate=16000,
+            )
+
+            if recorded_audio:
+                st.audio(recorded_audio)
+
+                if st.button("Transcribe Voice Answer"):
+                    with st.spinner("Transcribing your voice answer..."):
+                        audio_bytes = recorded_audio.getvalue()
+                        mime_type = recorded_audio.type or "audio/wav"
+
+                        st.session_state.transcribed_answer = transcribe_audio_answer(
+                            audio_bytes,
+                            mime_type,
+                        )
+
+            if st.session_state.transcribed_answer:
+                st.subheader("Transcribed Answer")
+                st.info(st.session_state.transcribed_answer)
+
+            user_answer = st.session_state.transcribed_answer
 
         if st.button("Evaluate My Answer"):
             if not user_answer.strip():
-                st.warning("Please write your answer before evaluation.")
+                st.warning("Please type an answer or record and transcribe your voice answer before evaluation.")
             else:
                 with st.spinner("AI is evaluating your answer..."):
                     feedback = evaluate_answer(
