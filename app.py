@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from utils.ai_interviewer import (
@@ -8,6 +10,8 @@ from utils.ai_interviewer import (
     generate_multiple_questions,
     evaluate_answer,
     transcribe_audio_answer,
+    generate_final_interview_summary,
+
 )
 from utils.pdf_reader import extract_text_from_pdf
 
@@ -73,6 +77,75 @@ AI Feedback:
 
     return report
 
+def get_readiness_level(average_score):
+    if average_score >= 8:
+        return "Interview Ready"
+
+    if average_score >= 6:
+        return "Almost Ready"
+
+    if average_score >= 4:
+        return "Needs Practice"
+
+    return "Beginner Level"
+
+
+def create_score_trend_chart(scores):
+    df = pd.DataFrame(
+        {
+            "Attempt": list(range(1, len(scores) + 1)),
+            "Score": scores,
+        }
+    )
+
+    fig = px.line(
+        df,
+        x="Attempt",
+        y="Score",
+        markers=True,
+        title="Interview Score Trend",
+    )
+
+    fig.update_layout(
+        yaxis_range=[0, 10],
+        height=350,
+        margin=dict(l=20, r=20, t=50, b=20),
+    )
+
+    return fig
+
+
+def create_score_bar_chart(feedback_history):
+    df = pd.DataFrame(
+        {
+            "Attempt": [
+                f"Attempt {index}"
+                for index in range(1, len(feedback_history) + 1)
+            ],
+            "Score": [
+                item["score"]
+                for item in feedback_history
+            ],
+        }
+    )
+
+    fig = px.bar(
+        df,
+        x="Attempt",
+        y="Score",
+        text="Score",
+        title="Attempt-wise Score Analysis",
+    )
+
+    fig.update_traces(textposition="outside")
+
+    fig.update_layout(
+        yaxis_range=[0, 10],
+        height=350,
+        margin=dict(l=20, r=20, t=50, b=20),
+    )
+
+    return fig
 
 st.set_page_config(
     page_title="AI Mock Interview Platform",
@@ -240,8 +313,6 @@ with metric2:
 with metric3:
     st.metric("Mode", mode)
 
-st.subheader("Interview Performance Dashboard")
-
 total_attempts = len(st.session_state.feedback_history)
 
 if st.session_state.scores:
@@ -250,6 +321,35 @@ if st.session_state.scores:
 else:
     average_score = 0
     best_score = 0
+
+st.subheader("Interview Performance Dashboard")
+if st.session_state.scores:
+    readiness_level = get_readiness_level(average_score)
+
+    st.subheader("Interview Readiness Level")
+
+    if readiness_level == "Interview Ready":
+        st.success(readiness_level)
+    elif readiness_level == "Almost Ready":
+        st.warning(readiness_level)
+    else:
+        st.error(readiness_level)
+
+    chart_col1, chart_col2 = st.columns(2)
+
+    with chart_col1:
+        st.plotly_chart(
+            create_score_trend_chart(st.session_state.scores),
+            use_container_width=True,
+        )
+
+    with chart_col2:
+        st.plotly_chart(
+            create_score_bar_chart(st.session_state.feedback_history),
+            use_container_width=True,
+        )
+else:
+    st.info("Complete at least one interview attempt to see performance analytics.")
 
 score_col1, score_col2, score_col3 = st.columns(3)
 
@@ -422,3 +522,18 @@ if st.session_state.feedback_history:
             st.markdown(item["feedback"])
 else:
     st.info("No feedback history yet.")
+
+st.subheader("Final AI Interview Summary")
+
+if st.session_state.feedback_history:
+    if st.button("Generate Final Performance Summary"):
+        with st.spinner("AI is analyzing your complete interview performance..."):
+            final_summary = generate_final_interview_summary(
+                role,
+                level,
+                st.session_state.feedback_history,
+            )
+
+        st.markdown(final_summary)
+else:
+    st.info("Complete at least one evaluated answer to generate final summary.")    

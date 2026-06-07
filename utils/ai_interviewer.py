@@ -186,3 +186,61 @@ Rules:
             continue
 
     return "Audio transcription failed. Please type your answer manually."
+def generate_final_interview_summary(role, level, feedback_history):
+    if not feedback_history:
+        return "No interview attempts found. Please complete at least one answer evaluation."
+
+    attempts_text = ""
+
+    for index, item in enumerate(feedback_history, start=1):
+        attempts_text += f"""
+Attempt {index}
+
+Question:
+{item["question"]}
+
+Candidate Answer:
+{item["answer"]}
+
+Score:
+{item["score"]}/10
+
+AI Feedback:
+{item["feedback"]}
+"""
+
+    prompt = f"""
+You are an expert interview coach.
+
+Analyze this candidate's complete mock interview performance.
+
+Role: {role}
+Level: {level}
+
+Interview Attempts:
+{attempts_text}
+
+Give final performance summary in this format:
+
+## Overall Interview Performance
+Explain how the candidate performed overall.
+
+## Strengths
+List the candidate's strengths.
+
+## Weak Areas
+List areas that need improvement.
+
+## Communication Feedback
+Give feedback on clarity, confidence, and structure.
+
+## Technical Preparation Advice
+Give role-specific technical preparation advice.
+
+## Next 7-Day Practice Plan
+Give a practical 7-day improvement plan.
+
+Keep it simple, honest, and useful for a student/fresher.
+"""
+
+    return ask_gemini(prompt)
