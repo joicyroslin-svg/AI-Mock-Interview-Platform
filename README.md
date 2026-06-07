@@ -6,6 +6,12 @@ AI Mock Interview Platform is an AI-powered interview practice dashboard that he
 
 [Try the App](https://ai-mock-interview-platform.streamlit.app/)
 
+## Project Demo Screen Recording
+
+Watch the screen recording of the AI Mock Interview Platform workflow:
+
+[View Demo Video](assets/ai-mock-interview-demo.mp4)
+
 ## Project Overview
 
 This project is designed to help students, freshers, and job seekers practice interviews in a more realistic and personalized way.
