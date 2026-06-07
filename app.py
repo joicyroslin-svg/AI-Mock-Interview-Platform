@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import streamlit as st
 
@@ -21,6 +22,55 @@ def save_uploaded_resume(uploaded_file):
         file.write(uploaded_file.getbuffer())
 
     return resume_path
+
+
+def extract_score(feedback):
+    match = re.search(r"Score:\s*(\d+)", feedback)
+
+    if match:
+        score = int(match.group(1))
+
+        if score > 10:
+            return 10
+
+        return score
+
+    return 0
+
+
+def build_interview_report(role, level, question_type, feedback_history):
+    report = f"""
+AI Mock Interview Report
+
+Role: {role}
+Level: {level}
+Question Type: {question_type}
+
+Total Attempts: {len(feedback_history)}
+
+----------------------------------------
+"""
+
+    for index, item in enumerate(feedback_history, start=1):
+        report += f"""
+Attempt {index}
+
+Question:
+{item["question"]}
+
+Candidate Answer:
+{item["answer"]}
+
+Score:
+{item["score"]}/10
+
+AI Feedback:
+{item["feedback"]}
+
+----------------------------------------
+"""
+
+    return report
 
 
 st.set_page_config(
@@ -99,7 +149,7 @@ st.markdown(
         <div class="main-title">AI Mock Interview Platform</div>
         <div class="subtitle">
             Practice interviews with AI-generated questions, resume-based questioning,
-            answer evaluation, and personalized feedback.
+            answer evaluation, performance tracking, and downloadable interview reports.
         </div>
     </div>
     """,
@@ -114,6 +164,12 @@ if "history" not in st.session_state:
 
 if "resume_text" not in st.session_state:
     st.session_state.resume_text = ""
+
+if "feedback_history" not in st.session_state:
+    st.session_state.feedback_history = []
+
+if "scores" not in st.session_state:
+    st.session_state.scores = []
 
 
 st.sidebar.title("Interview Setup")
@@ -180,6 +236,43 @@ with metric2:
 with metric3:
     st.metric("Mode", mode)
 
+st.subheader("Interview Performance Dashboard")
+
+total_attempts = len(st.session_state.feedback_history)
+
+if st.session_state.scores:
+    average_score = sum(st.session_state.scores) / len(st.session_state.scores)
+    best_score = max(st.session_state.scores)
+else:
+    average_score = 0
+    best_score = 0
+
+score_col1, score_col2, score_col3 = st.columns(3)
+
+with score_col1:
+    st.metric("Total Attempts", total_attempts)
+
+with score_col2:
+    st.metric("Average Score", f"{average_score:.1f}/10")
+
+with score_col3:
+    st.metric("Best Score", f"{best_score}/10")
+
+if st.session_state.feedback_history:
+    report_text = build_interview_report(
+        role,
+        level,
+        question_type,
+        st.session_state.feedback_history,
+    )
+
+    st.download_button(
+        label="Download Interview Report",
+        data=report_text,
+        file_name="ai_mock_interview_report.txt",
+        mime="text/plain",
+    )
+
 if st.session_state.resume_text:
     with st.expander("View Extracted Resume Text"):
         st.text_area(
@@ -225,6 +318,20 @@ if mode == "Single Question":
                         st.session_state.resume_text,
                     )
 
+                score = extract_score(feedback)
+
+                st.session_state.feedback_history.append(
+                    {
+                        "question": st.session_state.question,
+                        "answer": user_answer,
+                        "feedback": feedback,
+                        "score": score,
+                    }
+                )
+
+                if score > 0:
+                    st.session_state.scores.append(score)
+
                 st.subheader("AI Feedback")
                 st.markdown(feedback)
 
@@ -260,3 +367,20 @@ if st.session_state.history:
             st.write(item)
 else:
     st.info("No questions generated yet.")
+
+
+st.subheader("Feedback History")
+
+if st.session_state.feedback_history:
+    for index, item in enumerate(st.session_state.feedback_history, start=1):
+        with st.expander(f"Attempt {index} — Score: {item['score']}/10"):
+            st.markdown("### Question")
+            st.write(item["question"])
+
+            st.markdown("### Your Answer")
+            st.write(item["answer"])
+
+            st.markdown("### AI Feedback")
+            st.markdown(item["feedback"])
+else:
+    st.info("No feedback history yet.")
