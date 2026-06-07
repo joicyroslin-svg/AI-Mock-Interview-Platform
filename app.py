@@ -816,7 +816,7 @@ show_panel(
     "Configure your target role, difficulty level, question category, interview mode, and upload your resume for personalized interview questions.",
 )
 
-setup_col1, setup_col2, setup_col3, setup_col4 = st.columns(4)
+setup_col1, setup_col2, setup_col3, setup_col4 = st.columns([1.2, 1, 1.1, 1.25])
 
 with setup_col1:
     role = st.selectbox(
@@ -864,7 +864,7 @@ with setup_col3:
     )
 
 with setup_col4:
-    mode = st.radio(
+    mode = st.selectbox(
         "Interview Mode",
         [
             "Single Question",
@@ -891,7 +891,7 @@ with metric2:
     st.metric("Level", level)
 
 with metric3:
-    st.metric("Interview Mode", mode)
+    st.metric("Mode", mode)
 
 with metric4:
     resume_status = "Uploaded" if st.session_state.resume_text else "Pending"
