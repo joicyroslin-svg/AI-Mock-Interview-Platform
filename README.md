@@ -77,10 +77,6 @@ The app uses Gemini AI to generate questions, evaluate answers, transcribe voice
 * Git & GitHub
 * Streamlit Community Cloud
 
-## Demo Video
-
-[Watch Demo](assets/ai-mock-interview-demo.mp4)
-
 ## How to Run Locally
 
 Clone the repository:
