@@ -664,6 +664,7 @@ st.markdown(
         padding: 18px 18px 16px;
         border-radius: 8px;
         box-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
+        min-width: 0;
     }
 
     div[data-testid="column"]:nth-of-type(2) div[data-testid="stMetric"] {
@@ -687,7 +688,11 @@ st.markdown(
     div[data-testid="stMetricValue"] {
         color: var(--ink);
         font-weight: 900;
-        font-size: 25px;
+        font-size: clamp(17px, 1.35vw, 23px);
+        line-height: 1.15;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
     }
 
     .stButton > button {
@@ -816,7 +821,7 @@ show_panel(
     "Configure your target role, difficulty level, question category, interview mode, and upload your resume for personalized interview questions.",
 )
 
-setup_col1, setup_col2, setup_col3, setup_col4 = st.columns([1.2, 1, 1.1, 1.25])
+setup_col1, setup_col2, setup_col3, setup_col4 = st.columns([1.15, 0.95, 1.05, 1.45])
 
 with setup_col1:
     role = st.selectbox(
@@ -882,7 +887,7 @@ if uploaded_resume:
     st.session_state.resume_text = extract_text_from_pdf(resume_path)
     st.success("Resume uploaded successfully.")
 
-metric1, metric2, metric3, metric4 = st.columns(4)
+metric1, metric2, metric3, metric4 = st.columns([1.1, 0.85, 1.45, 1.1])
 
 with metric1:
     st.metric("Target Role", role)
